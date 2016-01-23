@@ -85,17 +85,6 @@
       });
       return true;
     }
-    else if("resolveHostNameWithUserDefinedCallbackString".equals(action)) {
-      final String url = args.getString(0);
-      final String userString = args.getString(1);
-                      // Run the UDP transmission on its own thread (it fails on some Android environments if run on the same thread)
-      cordova.getThreadPool().execute(new Runnable() {
-        public void run() {
-          UDPTransmit.this.resolveHostNameWithUserDefinedCallbackString(url, userString, callbackContext);
-        }
-      });
-      return true;
-    }
     else if("sendBroadcast".equals(action)) {
       final String message = args.getString(0);
       final int port = args.getInt(1);
@@ -177,23 +166,6 @@
       callbackContext.success(address.getHostAddress());
     else
       callbackContext.error("Error resolving host name: " + url);                       
-  }
-
-  private void resolveHostNameWithUserDefinedCallbackString(String url, String userString, CallbackContext callbackContext) {
-    boolean hostNameResolved = false;
-    InetAddress address = null;
-    try {
-                        // 'host' can be a ddd.ddd.ddd.ddd or named URL, so doesn't always resolve
-      address = InetAddress.getByName(url);
-      hostNameResolved = true;
-    } catch (UnknownHostException e) {
-                        // TODO Auto-generated catch block
-      e.printStackTrace();
-    }               
-    if (hostNameResolved)
-      callbackContext.success(address.getHostAddress() + "|" + userString);
-    else
-      callbackContext.error("|" + userString);                        
   }
 
   private void sendBroadcast(String message, int port, CallbackContext callbackContext) {
