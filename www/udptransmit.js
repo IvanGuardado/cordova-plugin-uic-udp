@@ -54,18 +54,7 @@ module.exports = {
 		);
 		return true;
 	},
-
-	resolveHostNameWithUserDefinedCallbackString: function(hostName, userDefined, onSuccess, onError) {
-		cordova.exec(
-			onSuccess,
-			onError,
-			"UDPTransmit",
-			"resolveHostNameWithUserDefinedCallbackString",
-			[hostName, userDefined]
-		);
-		return true;
-	},
-
+  
 	/**
 	 * Send a broadcast message
 	 * @param {String} message - The message to broadcast
