@@ -58,6 +58,15 @@ cordova.exec(
 			"resolveHostNameWithUserDefinedCallbackString",
 			[hostName, userDefined]);
 return true;
+},
+
+sendBroadcast: function(message, port, onSuccess, onError) {
+	cordova.exec(
+			onSuccess,
+			onError,
+			"UDPTransmit",
+			"sendBroadcast",
+			[message, port]);
 }
 	
 };
