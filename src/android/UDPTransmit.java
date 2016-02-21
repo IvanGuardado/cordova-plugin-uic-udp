@@ -218,8 +218,9 @@
       //We have a response
       //Check if the message is correct
       String serverMessage = new String(receivePacket.getData()).trim();
+      String ip = receivePacket.getAddress().toString();
       Log.i("UDPTransmit", "Received " + serverMessage);
-      callbackContext.success(serverMessage);
+      callbackContext.success(ip, serverMessage);
 
       //Close the port!
       c.close();
