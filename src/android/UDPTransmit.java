@@ -220,7 +220,7 @@
       String serverMessage = new String(receivePacket.getData()).trim();
       String ip = receivePacket.getAddress().toString();
       Log.i("UDPTransmit", "Received " + serverMessage);
-      callbackContext.success(ip, serverMessage);
+      callbackContext.success(ip + ":" + serverMessage);
 
       //Close the port!
       c.close();
