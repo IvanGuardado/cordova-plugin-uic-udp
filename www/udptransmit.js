@@ -55,20 +55,43 @@ module.exports = {
 		return true;
 	},
   
-	/**
-	 * Send a broadcast message
-	 * @param {String} message - The message to broadcast
-	 * @param {Number} port - The port for broadcasting
-	 * @param {Function} onSuccess -  Function called when a reply is  received
-	 * @param {Function} onError - Function called when any error is fired
-	 */
-	sendBroadcast: function(message, port, onSuccess, onError) {
+	enableBroadcast: function(onSuccess, onError) {
 		cordova.exec(
 			onSuccess,
 			onError,
 			"UDPTransmit",
-			"sendBroadcast",
-			[message, port]
+			"enableBroadcast",
+			[]
+		);
+	},
+	
+	onReceiveMessage: function(onSuccess, onError) {
+		cordova.exec(
+			onSuccess,
+			onError,
+			"UDPTransmit",
+			"onReceiveMessage",
+			[]
+		);
+	},
+	
+	onReceive: function(onSuccess, onError) {
+		cordova.exec(
+			onSuccess,
+			onError,
+			"UDPTransmit",
+			"onReceive",
+			[]
+		);
+	},
+
+	close: function(onSuccess, onError) {
+		cordova.exec(
+			onSuccess,
+			onError,
+			"UDPTransmit",
+			"close",
+			[]
 		);
 	}
 

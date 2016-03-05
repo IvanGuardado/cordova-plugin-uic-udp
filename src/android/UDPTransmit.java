@@ -85,13 +85,26 @@
       });
       return true;
     }
-    else if("sendBroadcast".equals(action)) {
-      final String message = args.getString(0);
-      final int port = args.getInt(1);
-
+    else if("enableBroadcast".equals(action)) {
       cordova.getThreadPool().execute(new Runnable() {
         public void run() {
-          UDPTransmit.this.sendBroadcast(message, port, callbackContext);
+          UDPTransmit.this.enableBroadcast(callbackContext);
+        }
+      });
+      return true;
+    }
+    else if("onReceiveMessage".equals(action)) {
+      cordova.getThreadPool().execute(new Runnable() {
+        public void run() {
+          UDPTransmit.this.onReceiveMessage(callbackContext);
+        }
+      });
+      return true;
+    }
+    else if("close".equals(action)) {
+      cordova.getThreadPool().execute(new Runnable() {
+        public void run() {
+          UDPTransmit.this.close(callbackContext);
         }
       });
       return true;
@@ -168,24 +181,44 @@
       callbackContext.error("Error resolving host name: " + url);                       
   }
 
-  private void sendBroadcast(String message, int port, CallbackContext callbackContext) {
-    // Find the server using UDP broadcast
-    DatagramSocket c;
+  private void onReceiveMessage(CallbackContext callbackContext) {
+    byte[] recvBuf = new byte[15000];
+    DatagramPacket receivePacket = new DatagramPacket(recvBuf, recvBuf.length);
 
+    Log.i("UDPTransmit", "Ping!!!");
     try {
-      //Open a random port to send the package
-      c = new DatagramSocket();
-      c.setBroadcast(true);
+      datagramSocket.receive(receivePacket);
+      String serverMessage = new String(receivePacket.getData()).trim();
+      String ip = receivePacket.getAddress().toString();
+      Log.i("UDPTransmit", "Received " + serverMessage);
+        callbackContext.success(ip + ":" + serverMessage);
+    }
+    catch (IOException ex) {
+      callbackContext.error(ex.getMessage());
+    }
+  }
 
-      byte[] sendData = message.getBytes();
+  private void close(CallbackContext callbackContext) {
+    datagramSocket.close();
+    callbackContext.success("done");
+  }
 
-      //Try the 255.255.255.255 first
-      try {
-        DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, InetAddress.getByName("255.255.255.255"), port);
-        c.send(sendPacket);
-      } catch (Exception e) {}
+  private void enableBroadcast(CallbackContext callbackContext) {
+    try {
+      datagramSocket.setBroadcast(true);
+      callbackContext.success("done");
+
+      /*
+      byte[] bytes = message.getBytes();
+      datagramPacket.setData(bytes);
+      datagramPacket.setLength(bytes.length);
+      datagramPacket.setAddress(InetAddress.getByName("255.255.255.255"));
+      datagramSocket.send(sendPacket);
+      callbackContext.success("done");
+      */
 
       // Broadcast the message over all the network interfaces
+      /*
       Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
       while (interfaces.hasMoreElements()) {
         NetworkInterface networkInterface = interfaces.nextElement();
@@ -207,23 +240,8 @@
           } catch (Exception e) {}
 
         }
-      }
+      }*/
 
-      //Wait for a response
-      Log.i("UDPTransmit", "Waitting for response");
-      byte[] recvBuf = new byte[15000];
-      DatagramPacket receivePacket = new DatagramPacket(recvBuf, recvBuf.length);
-      c.receive(receivePacket);
-
-      //We have a response
-      //Check if the message is correct
-      String serverMessage = new String(receivePacket.getData()).trim();
-      String ip = receivePacket.getAddress().toString();
-      Log.i("UDPTransmit", "Received " + serverMessage);
-      callbackContext.success(ip + ":" + serverMessage);
-
-      //Close the port!
-      c.close();
     } catch (IOException ex) {
       callbackContext.error(ex.getMessage());
     }
