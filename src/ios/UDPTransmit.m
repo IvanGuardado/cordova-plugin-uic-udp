@@ -71,8 +71,21 @@
 			DatagramSocketC = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 			int broadcastEnable=1;
 			setsockopt(DatagramSocketC, SOL_SOCKET, SO_BROADCAST, &broadcastEnable, sizeof(broadcastEnable));
-			
-			successInitializingTransmitter = true;
+
+            successInitializingTransmitter = true;
+
+            struct sockaddr_in recvAddr;
+            recvAddr.sin_port = htons(thePort);
+            recvAddr.sin_family = AF_INET;
+            recvAddr.sin_addr.s_addr = INADDR_ANY;
+
+            if (bind(DatagramSocketC, (const struct sockaddr *)&recvAddr, sizeof(recvAddr)) < 0)
+            {
+                NSLog(@"Couldn't bind socket: %@", [NSString stringWithUTF8String:strerror(errno)]);
+                close(DatagramSocketC);
+                DatagramSocketC = 0;
+                successInitializingTransmitter = false;
+            }
 		}
 		
 		NSString* socket = [NSString stringWithFormat:@"%i", DatagramSocketC];
@@ -85,29 +98,34 @@
 	}];
 }
 
+- (void) enableBroadcast:(CDVInvokedUrlCommand*)command
+{
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"done"] callbackId:command.callbackId];
+}
+
 // Sends a message to the IP and port set up in the initializer
 - (void) sendMessage:(CDVInvokedUrlCommand*)command
 {
-	[self.commandDelegate runInBackground:^{
-		
-		ssize_t result = 0;
-		CDVPluginResult* pluginResult = nil;
-		Boolean messageSent = false;
-		
-		// Only attempt to send a packet if the transmitter initialization was successful
-		if (successInitializingTransmitter) {
-			messageToSend = ((NSString *)[command.arguments objectAtIndex:0]).cString;
-			result = sendto(DatagramSocketC, messageToSend, strlen(messageToSend), 0, (struct sockaddr*)&broadcastAddr, sizeof broadcastAddr);
-			messageSent = true;
-		}
-		
-		if (messageSent)
-			pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:[@"Success transmitting UDP packet: " stringByAppendingString:[command.arguments objectAtIndex:0]]];
-		else
-			pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[@"Error transmitting UDP packet: " stringByAppendingString:[command.arguments objectAtIndex:0]]];
-		
-		[self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-	}];
+    [self.commandDelegate runInBackground:^{
+
+        ssize_t result = 0;
+        CDVPluginResult* pluginResult = nil;
+        Boolean messageSent = false;
+
+        // Only attempt to send a packet if the transmitter initialization was successful
+        if (successInitializingTransmitter) {
+            messageToSend = ((NSString *)[command.arguments objectAtIndex:0]).cString;
+            result = sendto(DatagramSocketC, messageToSend, strlen(messageToSend), 0, (struct sockaddr*)&broadcastAddr, sizeof broadcastAddr);
+            messageSent = true;
+        }
+
+        if (messageSent)
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:[@"Success transmitting UDP packet: " stringByAppendingString:[command.arguments objectAtIndex:0]]];
+        else
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:[@"Error transmitting UDP packet: " stringByAppendingString:[command.arguments objectAtIndex:0]]];
+        
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    }];
 }
 
 // Returns a ddd.ddd.ddd.ddd type IP address from a named URL host name of type whatever.mydomain.com
@@ -164,5 +182,59 @@
 	
 }
 
+- (void) close:(CDVInvokedUrlCommand*)command
+{
+    [self.commandDelegate runInBackground:^{
+        close(DatagramSocketC);
+        DatagramSocketC = 0;
+        successInitializingTransmitter = false;
+        memset(&broadcastAddr, 0, sizeof broadcastAddr);
+
+        NSLog(@"Socket closed");
+
+        [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@"done"] callbackId:command.callbackId];
+    }];
+}
+
+- (void) onReceiveMessage:(CDVInvokedUrlCommand*)command
+{
+    [self.commandDelegate runInBackground:^{
+
+        if (successInitializingTransmitter == false) {
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Socket is closed"] callbackId:command.callbackId];
+            return;
+        }
+
+        char recvBuf[15000];
+        memset(recvBuf, 0, sizeof(recvBuf));
+
+        struct sockaddr_storage sender;
+        socklen_t sendsize = sizeof(sender);
+        bzero(&sender, sizeof(sender));
+
+        ssize_t recvResult = recvfrom(DatagramSocketC, recvBuf, sizeof(recvBuf), 0, (struct sockaddr*)&sender, &sendsize);
+
+        if (recvResult < 0)
+        {
+            NSString *error = [NSString stringWithUTF8String:strerror(errno)];
+            NSLog(@"Error reading socket: %@", error);
+            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error] callbackId:command.callbackId];
+            return;
+        }
+
+        struct sockaddr_in *sinIPv4 = (struct sockaddr_in *)&sender;
+        unsigned char *ip = (unsigned char *)&sinIPv4->sin_addr.s_addr;
+        NSString *ipString = [NSString stringWithFormat:@"%@.%@.%@.%@", @(ip[0]), @(ip[1]), @(ip[2]), @(ip[3])];
+
+        NSString *serverMessage = [[NSString stringWithUTF8String:recvBuf] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+
+        NSLog(@"Received message '%@' from '%@'", serverMessage, ipString);
+
+        NSString *resultMessage = [NSString stringWithFormat:@"%@:%@", ipString, serverMessage];
+
+        [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:resultMessage] callbackId:command.callbackId];
+    }];
+}
 
 @end
+

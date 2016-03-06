@@ -29,8 +29,11 @@
 @interface UDPTransmit : CDVPlugin
 
 - (void)initialize:(CDVInvokedUrlCommand*)command;
+- (void)enableBroadcast:(CDVInvokedUrlCommand*)command;
 - (void)sendMessage:(CDVInvokedUrlCommand*)command;
 - (void)resolveHostName:(CDVInvokedUrlCommand*)command;
 - (void)resolveHostNameWithUserDefinedCallbackString:(CDVInvokedUrlCommand*)command;
+- (void)onReceiveMessage:(CDVInvokedUrlCommand*)command;
+- (void)close:(CDVInvokedUrlCommand*)command;
 
 @end
