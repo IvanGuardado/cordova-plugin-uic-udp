@@ -75,16 +75,6 @@ module.exports = {
 		);
 	},
 	
-	onReceive: function(onSuccess, onError) {
-		cordova.exec(
-			onSuccess,
-			onError,
-			"UDPTransmit",
-			"onReceive",
-			[]
-		);
-	},
-
 	close: function(onSuccess, onError) {
 		cordova.exec(
 			onSuccess,
