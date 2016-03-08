@@ -75,7 +75,7 @@
             successInitializingTransmitter = true;
 
             struct sockaddr_in recvAddr;
-            recvAddr.sin_port = htons(thePort);
+            recvAddr.sin_port = 0;
             recvAddr.sin_family = AF_INET;
             recvAddr.sin_addr.s_addr = INADDR_ANY;
 
@@ -230,7 +230,7 @@
 
         NSLog(@"Received message '%@' from '%@'", serverMessage, ipString);
 
-        NSString *resultMessage = [NSString stringWithFormat:@"%@:%@", ipString, serverMessage];
+        NSString *resultMessage = [NSString stringWithFormat:@"/%@:%@", ipString, serverMessage];
 
         [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:resultMessage] callbackId:command.callbackId];
     }];
